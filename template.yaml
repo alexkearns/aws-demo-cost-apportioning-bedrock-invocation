@@ -29,7 +29,13 @@ Resources:
       CodeUri: functions/lambda_authorizer
       Handler: app.lambda_handler
       MemorySize: 128
-      Timeout: 3
+      Timeout: 5
+      Environment:
+        Variables:
+          API_KEY_TABLE: !Ref ApiKeyTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ApiKeyTable
 
   BedrockProxyFunction:
     Type: AWS::Serverless::Function
@@ -52,6 +58,13 @@ Resources:
             RestApiId: !Ref BedrockProxyApi
             Path: /invoke-model
             Method: POST
+
+  ApiKeyTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: ApiKey
+        Type: String
 
 Outputs:
   BedrockProxyApiEndpoint:
