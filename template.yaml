@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Creates a Bedrock Cost Apportionment Proxy.
+
+Parameters:
+  pStageName:
+    Type: String
+    Description: Stage name for the API Gateway
+    Default: v1
+
+Resources:
+  BedrockProxyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref pStageName
+      EndpointConfiguration:
+        Type: REGIONAL
+
+  BedrockProxyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      CodeUri: functions/bedrock_proxy
+      Handler: app.lambda_handler
+      MemorySize: 128
+      Timeout: 30
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+      Events:
+        ProxyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BedrockProxyApi
+            Path: /invoke-model
+            Method: POST
+
+Outputs:
+  BedrockProxyApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${BedrockProxyApi}.execute-api.${AWS::Region}.amazonaws.com/${pStageName}/invoke-model"
