@@ -14,8 +14,22 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref pStageName
+      Auth:
+        DefaultAuthorizer: LambdaAuthorizer
+        Authorizers:
+          LambdaAuthorizer:
+            FunctionArn: !GetAtt LambdaAuthorizerFunction.Arn
       EndpointConfiguration:
         Type: REGIONAL
+
+  LambdaAuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      CodeUri: functions/lambda_authorizer
+      Handler: app.lambda_handler
+      MemorySize: 128
+      Timeout: 3
 
   BedrockProxyFunction:
     Type: AWS::Serverless::Function
