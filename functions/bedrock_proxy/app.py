@@ -1,12 +1,17 @@
 import boto3
 import json
+import os
+
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver
 from aws_lambda_powertools.utilities.typing.lambda_context import LambdaContext
 
 from get_model_usage import ModelUsageDriverManager
-import json
+
+CLOUDWATCH_CUSTOM_METRIC_NAMESPACE = os.environ["CLOUDWATCH_CUSTOM_METRIC_NAMESPACE"]
 
 bedrock_runtime = boto3.client("bedrock-runtime")
+cloudwatch = boto3.client("cloudwatch")
+
 app = APIGatewayRestResolver()
 
 
@@ -28,7 +33,52 @@ def invoke_model():
     model_usage = model_usage_driver(model_id).get_model_usage(
         json.loads(response_body)
     )
-    print(model_usage)
+
+    # Extract the user information from the event
+    principal_id = app.current_event.request_context.authorizer.principal_id
+
+    # Put metric data to CloudWatch to store model usage
+    cloudwatch.put_metric_data(
+        Namespace=CLOUDWATCH_CUSTOM_METRIC_NAMESPACE,
+        MetricData=[
+            {
+                "MetricName": "InputTokensUsed",
+                "Value": model_usage["input"]["tokens"],
+                "Unit": "Count",
+                "Dimensions": [
+                    {"Name": "ModelId", "Value": model_id},
+                    {"Name": "PrincipalId", "Value": principal_id},
+                ],
+            },
+            {
+                "MetricName": "InputTokensCost",
+                "Value": model_usage["input"]["cost"],
+                "Unit": "Count",
+                "Dimensions": [
+                    {"Name": "ModelId", "Value": model_id},
+                    {"Name": "PrincipalId", "Value": principal_id},
+                ],
+            },
+            {
+                "MetricName": "OutputTokensUsed",
+                "Value": model_usage["output"]["tokens"],
+                "Unit": "Count",
+                "Dimensions": [
+                    {"Name": "ModelId", "Value": model_id},
+                    {"Name": "PrincipalId", "Value": principal_id},
+                ],
+            },
+            {
+                "MetricName": "OutputTokensCost",
+                "Value": model_usage["output"]["cost"],
+                "Unit": "Count",
+                "Dimensions": [
+                    {"Name": "ModelId", "Value": model_id},
+                    {"Name": "PrincipalId", "Value": principal_id},
+                ],
+            },
+        ],
+    )
 
     return response_body
 

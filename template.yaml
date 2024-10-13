@@ -8,6 +8,10 @@ Parameters:
     Type: String
     Description: Stage name for the API Gateway
     Default: v1
+  pCloudWatchCustomMetricNamespace:
+    Type: String
+    Description: CloudWatch Custom Metric Namespace
+    Default: BedrockCostApportionment
 
 Resources:
   BedrockProxyApi:
@@ -45,12 +49,22 @@ Resources:
       Handler: app.lambda_handler
       MemorySize: 128
       Timeout: 30
+      Environment:
+        Variables:
+          CLOUDWATCH_CUSTOM_METRIC_NAMESPACE: !Ref pCloudWatchCustomMetricNamespace
       Policies:
         - Statement:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
               Resource: "*"
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricData
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  "cloudwatch:namespace": !Ref pCloudWatchCustomMetricNamespace
       Events:
         ProxyApi:
           Type: Api
