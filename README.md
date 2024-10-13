@@ -1,4 +1,4 @@
-# bedrock-cost-apportionment
+# Apportioning cost of Amazon Bedrock InvokeModel requests
 
 ## Getting started
 
@@ -39,3 +39,33 @@ python generate_sample_api_key.py --username "Your Name" --dynamodb-table-name "
 ```
 
 ### 4. Making a request
+
+The SAM template has a CloudFormation output declared that holds the value of the URL you'll be sending a request to. The output is called `BedrockProxyApiEndpoint`. I'd recommend using Postman as an easy way to make this request.
+
+To test your deployed application, send a request to the URL output with the following body and an additional header of `Authorization` with a value of the API key that was generated in step 3.
+
+```json
+{
+  "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+  "body": {
+    "anthropic_version": "bedrock-2023-05-31",
+    "max_tokens": 2048,
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Good morning!"
+          }
+        ]
+      }
+    ],
+    "temperature": 0.5,
+    "top_p": 0.5,
+    "top_k": 250
+  }
+}
+```
+
+From this, you'll be returned the normal output from an InvokeModel API call. Behind the scenes, metrics will have been stored to help you apportion the cost.
